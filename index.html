@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmonizer</title>
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+  <style>
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      padding: 0;
+      margin: 0;
+      background: rgb(189, 189, 189)
+    }
+
+    ul {
+      height: 18.875em;
+      float: left;
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    li {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      position: relative;
+      float: left
+    }
+
+    .white {
+      height: 16em;
+      width: 2.4em;
+      z-index: 1;
+      border-left: 1px solid #bbb;
+      border-bottom: 1px solid #bbb;
+      border-radius: 0 0 5px 5px;
+      box-shadow: -1px 0 0 rgba(255, 255, 255, 0.8) inset, 0 0 5px #ccc inset, 0 0 3px rgba(0, 0, 0, 0.2);
+      background: linear-gradient(to bottom, #eee 0%, #fff 100%)
+    }
+
+    .white.pressed {
+      border-top: 1px solid #777;
+      border-left: 1px solid #999;
+      border-bottom: 1px solid #999;
+      box-shadow: 2px 0 3px rgba(0, 0, 0, 0.1) inset, -5px 5px 20px rgba(0, 0, 0, 0.2) inset, 0 0 3px rgba(0, 0, 0, 0.2);
+      background: linear-gradient(to bottom, rgb(148, 245, 148) 0%, #2fd846 100%) !important
+    }
+
+    .white.pressable {
+      background: linear-gradient(to bottom, rgb(227, 241, 245) 0%, #addaf8 100%)
+    }
+
+    .black {
+      height: 8em;
+      width: 1.2em;
+      margin: 0 0 0 -0.6em;
+      z-index: 2;
+      border: 1px solid #000;
+      border-radius: 0 0 3px 3px;
+      box-shadow: -1px -1px 2px rgba(255, 255, 255, 0.2) inset, 0 -5px 2px 3px rgba(0, 0, 0, 0.6) inset, 0 2px 4px rgba(0, 0, 0, 0.5);
+      background: linear-gradient(45deg, #222 0%, #555 100%)
+    }
+
+    .black.pressed {
+      box-shadow: -1px -1px 2px rgba(255, 255, 255, 0.2) inset, 0 -2px 2px 3px rgba(0, 0, 0, 0.6) inset, 0 1px 2px rgba(0, 0, 0, 0.5);
+      background: linear-gradient(to right, rgb(153, 106, 153) 0%, #a928b4 100%) !important
+    }
+
+    .black.pressable {
+      background: linear-gradient(to bottom, rgb(141, 152, 155) 0%, #587181 100%)
+    }
+
+    .a,
+    .g,
+    .f,
+    .d,
+    .c {
+      margin: 0 0 0 -0.6em
+    }
+
+    ul:first-of-type li:first-child {
+      border-radius: 5px 0 5px 5px
+    }
+
+    ul:last-of-type li:last-child {
+      border-radius: 0 5px 5px 5px
+    }
+
+    .custom-control {
+      line-height: 2.25em;
+    }
+
+    .custom-control-label::before {
+      top: 0.75rem;
+    }
+
+    .custom-switch .custom-control-label::after {
+      top: calc(.75rem + 2px);
+    }
+
+    #sequencer td {
+      border-width: 12px !important;
+    }
+
+    .seq-active {
+      border-color: red !important;
+    }
+
+    #note, #key {
+      font-size: 24px;
+    }
+  </style>
+
+  <script src="p5/p5.min.js"></script>
+  <script src="p5/p5.sound.min.js"></script>
+
+</head>
+
+<body>
+
+  <div class="container-full">
+    <div class="row">
+      <div class="col">
+        <div id="kb">
+
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-2 text-center" id="key"></div>
+      <div class="col">
+        <div id="note" class="text-center">
+
+        </div>
+      </div>
+      <div class="col-2">&nbsp;</div>
+    </div>
+
+    <div class="row">
+      <div class="col-1">&nbsp;</div>
+      <div class="col">
+        <table class="table table-dark">
+          <tbody>
+            <tr id="sequencer">
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col-1">&nbsp;</div>
+    </div>
+
+
+
+    <div class="row">
+      <div class="col">
+
+        <form>
+          <div class="form-group form-row">
+            <div class="col-1">&nbsp;</div>
+            <label for="ts-top" class="col-1 col-form-label">Time Signature</label>
+            <div class="col-1">
+              <input id="ts-top" type="number" min="1" step="1" class="form-control" value="4">
+            </div>
+            <label for="ts-bottom" class="">/</label>
+            <div class="col-1">
+              <select id="ts-bottom" class="form-control" id="modMode">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="4">4</option>
+                  <option selected value="8">8</option>
+                  <option value="16">16</option>
+                </select>
+            </div>
+            <div class="col-1">&nbsp;</div>
+            <label for="bpm" class="col-1 col-form-label">BPM</label>
+            <div class="col-1">
+              <input id="bpm" type="number" min="50" step="1" class="form-control" value="145">
+            </div>
+
+            <div class="col-1">&nbsp;</div>
+            <div class="col-1">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="beatOn">
+                <label class="custom-control-label" for="beatOn">Beat</label>
+              </div>
+            </div>
+
+            <div class="col-1">&nbsp;</div>
+            <div class="col-1">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" checked class="custom-control-input" id="drumsOn">
+                <label class="custom-control-label" for="drumsOn">Drums</label>
+              </div>
+            </div>
+          </div>
+
+
+
+          <div class="form-group form-row">
+
+
+            <div class="col-1">&nbsp;</div>
+            <div class="col-1">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" checked class="custom-control-input" id="synthOn">
+                <label class="custom-control-label" for="synthOn">Synth</label>
+              </div>
+            </div>
+
+            <div class="col-2">
+              <select class="form-control" id="modMode">
+                <option value="0">Only minor keys</option>
+                <option value="1">Only major keys</option>
+                <option value="2">Major/minor keys</option>
+                <option value="3">Major/minor keys (harder)</option>
+              </select>
+            </div>
+
+
+            <div class="col-1">&nbsp;</div>
+            <div class="col-1">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="inversionOn">
+                <label class="custom-control-label" for="inversionOn">Inv</label>
+              </div>
+            </div>
+
+
+            <div class="col-1">&nbsp;</div>
+            <div class="col-1">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" checked class="custom-control-input" id="seventhOn">
+                <label class="custom-control-label" for="seventhOn">7th</label>
+              </div>
+            </div>
+
+            <div class="col-3">
+              <label for="filterFreq">Filter</label>
+              <input type="range" class="custom-range" min="100" max="10000" step="10" id="filterFreq" value="3500">
+            </div>
+
+
+
+          </div>
+        </form>
+
+
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <div class="alert alert-warning alert-dismissible fade show text-center" role="alert">
+          <h4 class="alert-heading">Instructions</h4>
+          <p>
+            Click on the piano keyboard (or press SPACE) to start playing<br />
+            Please note that you can click only the light blue buttons on the keyboard<br />
+            To stop, press SPACE<br />
+            Adjust the parameters as you like, toggles/sliders work while playing, the others take effect at the next restart<br />
+          </p>
+
+          <h4 class="alert-heading">How does this work</h4>
+          <p>
+            Plays chords according to predefined progressions, in various keys taken from the Circle of fifths<br />
+            It always starts from the key you pressed; if you use SPACE, it starts from A3 note (so the first key is A
+            major or A minor)<br />
+            At times, shifts to a new key (using pivot chords) according to the rules chosen in the select field<br />
+            At times, shifts to a new progression<br />
+            At times, makes a chord inversion (if <b>Inv</b> parameter is toggled on)<br />
+          </p>
+
+          <h4 class="alert-heading">Thanks to ...</h4>
+          <p>
+            p5.js, p5.sound<br />
+            bootstrap<br />
+            https://codepen.io/zastrow/pen/oDBki for the nice piano keyboard.<br />
+            https://soundpacks.com/free-sound-packs/jazz-drum-kit/ for the drum kit sounds.
+          </p>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col text-center">
+        Copyright &COPY; 2019 Alberto Fiore
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+  <script src="sketch.js"></script>
+</body>
+
+</html>
