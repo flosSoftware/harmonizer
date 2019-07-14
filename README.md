@@ -1,3 +1,5 @@
+# Live demo
+- http://learnharmony.net
 # Instructions
 - Open index.html
 - Click on the piano keyboard (or press SPACE) to start playing
