@@ -12,6 +12,7 @@
 - To modulate form a minor key to its relative major, it makes use of *I - vi* correspondence or *VI - I* correspondence (in the latter case it doesn't switch to the strict relative key, but to its neighbouring key)
 - At times, shifts to a new progression
 - At times, makes a chord inversion (if Inv parameter is toggled on)
+- Rhythm is generated randomly and changes at each restart
 # Thanks to ...
 - p5.js, p5.sound
 - bootstrap
