@@ -15,6 +15,24 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** DOM stuff */
+
+// responsive stuff
+
+let isXSm = false, isSm = false, isMd = false, isLg = false, isXLg = false, isXXLg = false;
+
+if (window.innerWidth >= 1450)
+  isXXLg = true; // 5 octave keyboard
+else if (window.innerWidth >= 1200)
+  isXLg = true; // 4 octave keyboard
+else if (window.innerWidth >= 992)
+  isLg = true; // 3 octave keyboard
+else if (window.innerWidth >= 768)
+  isMd = true; // 2 octave keyboard
+else if (window.innerWidth >= 576)
+  isSm = true; // 1 octave keyboard
+else
+  isXSm = true; // 1 octave keyboard
+
 let playedKeyEl = null, playedKeyEl2 = null, playedKeyEl3 = null, playedKeyEl4 = null;
 
 let noteTxt = document.getElementById("note");
@@ -950,13 +968,13 @@ function timer() {
         playedKeyEl4.classList.remove("pressed");
 
       playedKeyEl3 = document.getElementById("k" + (midiNote + activeShift[2]));
-      playedKeyEl3.classList.add("pressed");
+      if (playedKeyEl3 != null) playedKeyEl3.classList.add("pressed");
 
       noteTxt.textContent = midiToString(midiNote + activeShift[2]) + " " + midiToString(midiNote + activeShift[3]);
 
       if (seventhOn) {
         playedKeyEl4 = document.getElementById("k" + (midiNote + activeShift[3]));
-        playedKeyEl4.classList.add("pressed");
+        if (playedKeyEl4 != null) playedKeyEl4.classList.add("pressed");
       }
 
       freq = midiToFreq(midiNote + activeShift[0]);
@@ -970,7 +988,7 @@ function timer() {
         freq = midiToFreq(midiNote + activeShift[0] + 12); // first inversion
 
         playedKeyEl = document.getElementById("k" + (midiNote + activeShift[0] + 12));
-        playedKeyEl.classList.add("pressed");
+        if (playedKeyEl != null) playedKeyEl.classList.add("pressed");
 
         noteTxt.textContent += " " + midiToString(midiNote + activeShift[0] + 12);
 
@@ -980,7 +998,7 @@ function timer() {
 
           freq2 = midiToFreq(midiNote + activeShift[1] + 12); // second inversion
           playedKeyEl2 = document.getElementById("k" + (midiNote + activeShift[1] + 12));
-          playedKeyEl2.classList.add("pressed");
+          if (playedKeyEl2 != null) playedKeyEl2.classList.add("pressed");
 
           noteTxt.textContent += " " + midiToString(midiNote + activeShift[1] + 12);
 
@@ -1000,10 +1018,10 @@ function timer() {
       } else {
 
         playedKeyEl = document.getElementById("k" + (midiNote + activeShift[0]));
-        playedKeyEl.classList.add("pressed");
+        if (playedKeyEl != null) playedKeyEl.classList.add("pressed");
 
         playedKeyEl2 = document.getElementById("k" + (midiNote + activeShift[1]));
-        playedKeyEl2.classList.add("pressed");
+        if (playedKeyEl2 != null) playedKeyEl2.classList.add("pressed");
 
         noteTxt.textContent = midiToString(midiNote + activeShift[0]) + " "
           + midiToString(midiNote + activeShift[1]) + " " + noteTxt.textContent;
@@ -1437,6 +1455,21 @@ function createKeyboard() {
 
   let numOct = 5;
   let midiKey = 36;
+
+  if (isXLg) {
+    numOct = 4;
+    midiKey = 48;
+  } else if (isLg) {
+    numOct = 3;
+    midiKey = 48;
+  } else if (isMd) {
+    numOct = 2;
+    midiKey = 48;
+  } else if (isSm || isXSm) {
+    numOct = 1;
+    midiKey = 48;
+  }
+
   let kb = document.getElementById("kb");
 
   for (let i = 0; i < numOct; i++) {
