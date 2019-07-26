@@ -16,6 +16,8 @@
  */
 /** DOM stuff */
 
+let lastActiveProgrIdx = -1;
+
 // responsive stuff
 
 let isXSm = false, isSm = false, isMd = false, isLg = false, isXLg = false, isXXLg = false;
@@ -359,6 +361,24 @@ function setup() {
 
 }
 
+function updateProgressionViz() {
+  lastActiveProgrIdx = -1;
+  let el = document.getElementById("progression");
+  while (el.firstChild) el.removeChild(el.firstChild)
+  for (let noteIdx of activeProgr) {
+    el.insertAdjacentHTML("beforeend", '<td class="text-center">' + toRomanIndex(noteIdx) + "</td>");
+  }
+}
+
+function showActiveProgrIdx(idx) {
+  let el = document.getElementById("progression");
+  //console.log(el.children[idx])
+  if (lastActiveProgrIdx >= 0)
+    el.children[lastActiveProgrIdx].classList.remove("activeProgr");
+  el.children[idx].classList.add("activeProgr");
+  lastActiveProgrIdx = idx;
+}
+
 function play() {
   // console.log(cancel);
   // console.log(cancel2);
@@ -375,6 +395,10 @@ function play() {
   progrIdx = parseInt(random() * progr.length, 10);
 
   // console.log(progrIdx);
+
+  activeProgr = progr[progrIdx]['progr'];
+
+  updateProgressionViz();
 
   modMode = parseInt(document.getElementById("modMode").value, 10);
   // console.log(modMode);
@@ -430,7 +454,7 @@ function play() {
   beatMs = minuteMs / bpm;
   dur = 1. / tsB;
   beatN = 1;
-
+  // 0.0625 = 1/16
   while (dur > 0.0625) {
     dur /= 2;
     beatMs /= 2;
@@ -829,6 +853,8 @@ function timer() {
         progrNoteIdx = 0; // reset to I chord
         activeProgr = progr[progrIdx]['progr'];
 
+        updateProgressionViz();
+
         // console.log("new progr " + progrIdx);
       }
 
@@ -916,6 +942,8 @@ function timer() {
         progrNoteIdx = modulation["nuProgrNoteIdx"]; // set start point of the progression
         activeProgr = progr[progrIdx]['progr'];
 
+        updateProgressionViz();
+
         // console.log("new progr " + progrIdx);
       }
 
@@ -930,6 +958,8 @@ function timer() {
 
       progrIdx = parseInt(random() * progr.length, 10);
       activeProgr = progr[progrIdx]['progr'];
+
+      updateProgressionViz();
       // console.log("new progr " + progrIdx);
     }
 
@@ -942,6 +972,8 @@ function timer() {
     } else {
 
       // console.log("progrNoteIdx " + progrNoteIdx);
+
+      showActiveProgrIdx(progrNoteIdx);
 
       noteIdx = activeProgr[progrNoteIdx];
       activeShift = shift[activeKey[noteIdx]];
@@ -1332,27 +1364,27 @@ function correctNote(note) {
   return note;
 }
 
-function toRomans(progr) {
+function toRomanIndex(idx) {
   let ret = "";
-  for (let i = 0; i < progr.length; i++) {
-    //println(progr[i]);
-    if (progr[i] == 0)
-      ret += activeKey == majKey ? " I" : " i";
-    else if (progr[i] == 1)
-      ret += activeKey == majKey ? " ii" : " ii°";
-    else if (progr[i] == 2)
-      ret += activeKey == majKey ? " iii" : " III";
-    else if (progr[i] == 3)
-      ret += activeKey == majKey ? " IV" : " iv";
-    else if (progr[i] == 4)
-      ret += activeKey == majKey ? " V" : " V";
-    else if (progr[i] == 5)
-      ret += activeKey == majKey ? " vi" : " VI";
-    else if (progr[i] == 6)
-      ret += activeKey == majKey ? " vii°" : " vii°";
-  }
+
+  //println(idx);
+  if (idx == 0)
+    ret = activeKey == majKey ? "I" : "i";
+  else if (idx == 1)
+    ret = activeKey == majKey ? "ii" : "ii°";
+  else if (idx == 2)
+    ret = activeKey == majKey ? "iii" : "III";
+  else if (idx == 3)
+    ret = activeKey == majKey ? "IV" : "iv";
+  else if (idx == 4)
+    ret = activeKey == majKey ? "V" : "V";
+  else if (idx == 5)
+    ret = activeKey == majKey ? "vi" : "VI";
+  else if (idx == 6)
+    ret = activeKey == majKey ? "vii°" : "vii°";
+
   //println(ret);
-  return ret.substring(1);
+  return ret;
 }
 
 function stringToMidi(note) {
