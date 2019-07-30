@@ -14,9 +14,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 /** DOM stuff */
 
-let lastActiveProgrIdx = -1;
+let progrWin, activeProgrEl = null, lastActiveProgrEl = null, lastActiveProgrIdx = -1;
 
 // responsive stuff
 
@@ -40,6 +41,8 @@ let playedKeyEl = null, playedKeyEl2 = null, playedKeyEl3 = null, playedKeyEl4 =
 let noteTxt = document.getElementById("note");
 let keyTxt = document.getElementById("key");
 
+/** CONFIGS */
+
 let attackLevel = 0.25;
 let releaseLevel = 0;
 
@@ -52,14 +55,17 @@ let env, env2, env3, env4, envF;
 let osc, osc2, osc3, osc4;
 let freq = 220, freq2 = 220, freq3 = 220, freq4 = 220;
 
+let filter, filterFreq = parseInt(document.getElementById("filterFreq").value, 10), filterRes = 2;
+
+let synthOn = document.getElementById("synthOn").checked, drumsOn = document.getElementById("drumsOn").checked, seventhOn = document.getElementById("seventhOn").checked, beatOn = document.getElementById("beatOn").checked, inversionOn = document.getElementById("inversionOn").checked;
+
+
 /* DRUM STUFF **/
 let beatSound, bdSound, hhSound, hh2Sound, snrSound;
 let bdPat, hhPat, hh2Pat, snrPat;
 let bdIdx, hhIdx, hh2Idx, snrIdx;
 let patSize;
 let mult3, mult7, mult6, mult5, mult4;
-
-let filter, filterFreq = parseInt(document.getElementById("filterFreq").value, 10), filterRes = 2;
 
 /* 
 CIRCLE OF FIFTHS
@@ -82,24 +88,21 @@ let shiftSharpDim = [1, 4, 7, 10];
 // altered chords
 let shiftMinFlat5 = [0, 3, 6, 10];
 
+// shift array is used to build chords
 let shift = [shiftMaj, shiftMin, shiftDim, shiftDom, shiftSharpDim, shiftMinFlat5];
 
-// arrays that contain shift indexes
+// activeKey/minKey/majKey contain indexes of shift array (to build chords)
+
 let minKey = [1, 2, 0, 1, 0, 0, 2]; // 0 -> maj, 1 -> min, 2 -> dim, 3 -> dom chord -> i ii° III iv V VI vii°
 let majKey = [0, 1, 1, 0, 0, 1, 2]; // 0 -> maj, 1 -> min, 2 -> dim, 3 -> dom chord -> I ii iii IV V vi vii°
 
 let activeKey, activeProgr, activeShift;
 
-let numNotes = 7;
-
-let synthOn = document.getElementById("synthOn").checked, drumsOn = document.getElementById("drumsOn").checked, seventhOn = document.getElementById("seventhOn").checked, beatOn = document.getElementById("beatOn").checked, inversionOn = document.getElementById("inversionOn").checked;
-
-// Some common chord progression (progr property: indexes of midiSequence/activeKey, varMaj/varMin property: indexes of shift)
-// - midiSequence (defined later) contains notes of the active scale
-// - activeKey contains shift indexes (to build chords)
-// - varMaj is used only in major keys
-// - varMin is used only in minor keys
-
+// Some common chord progression:
+// - progr property: references indexes of activeKey (which refers to either minKey or majKey)
+// - varMaj/varMin are overrides of the progr property: they refer to indexes of shift array:
+//    - varMaj is used only in major keys
+//    - varMin is used only in minor keys
 let progr = [
   // JAZZ
   { progr: [1, 4, 0, 0], varMaj: [1, 3, 0, 0], varMin: [5, 3, 1, 1] },
@@ -149,9 +152,14 @@ let beatMs, barMs, sixteenthMs;
 let tds; // elements of sequencer
 let seqIdx; // index of active sequencer element
 
+let sixteenthWidth; // width of a square representing a 1/16 note in the sequencer
 let tonic = stringToMidi("A3");
 
-let midiSequence = []; // midi notes of the current scale
+// midi notes of the current scale
+let midiSequence = [];
+
+// how many notes are in a scale
+let numNotes = 7;
 
 let noteIdx = 0, noteIdx2 = 0, progrNoteIdx = 0;
 
@@ -171,18 +179,24 @@ let probNoInv2 = 1, probInv2 = 0;
 
 
 /** MODULATION MODES */
-let MOD_MODE_ONLY_MIN = 0, MOD_MODE_ONLY_MAJ = 1, MOD_MODE_MAJ_MIN = 2, MOD_MODE_MAJ_MIN_HARD = 3;
+let MOD_MODE_MIN_NO_MOD = 0, MOD_MODE_MAJ_NO_MOD = 1, MOD_MODE_ONLY_MIN = 2, MOD_MODE_ONLY_MAJ = 3, MOD_MODE_MAJ_MIN = 4, MOD_MODE_MAJ_MIN_HARD = 5;
 let modMode = MOD_MODE_MAJ_MIN;
 
 // this random number gen creates number according to the probabilities associated to 3 events: 
 // - no modulation, 
-// - modulation to the next key in the same circle (min/maj), 
 // - modulation to the relative min/maj key
+// - modulation to the next key in the same circle (min/maj), 
 let drngMod;
 const NO_MOD = 0, MOD_REL = 1, MOD_NEXT = 2;
 // predefined set of probs: 
-// index correspond to one of the modModes in the order they're defined
+// index correspond to one of the modulation modes in the order they're defined
 let modProbs = [{
+  probNoMod: 1, probModRel: 0, probModNext: 1
+},
+{
+  probNoMod: 1, probModRel: 0, probModNext: 1
+},
+{
   probNoMod: 1 / 2., probModRel: 0, probModNext: 1 / 2.
 },
 {
@@ -206,13 +220,13 @@ let probNoChgProg = 1, probChgProg = 0;
 let cancel = false, cancel2 = false, cancel3 = false, cancel4 = false, cancel5 = false, cancel6 = false, cancel7 = false, cancel8 = false; // vars to stop timers
 let isPlaying = false;
 /* 
-!!!!VERY IMPORTANT!!!! 
-usually a timer created with setTimeout() could take at least 4ms to start
+!!!!ATTENTION!!!! 
+usually, in this application consecutive timer calls are delayed more than 4ms so there should be no problem here
 ref. https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout#Reasons_for_delays_longer_than_specified 
 */
-let timerDelayCompensationMs = 20;
+let timerDelayCompensationMs = 20, timerDelayCompensationMs2 = 2;
 
-// (minToMaj, majToMin) => arrays to associate: 
+// minToMaj/majToMin => arrays to associate: 
 // - scale index of pivot chord in the starting key
 // - array where to get a new progression
 // - index of next chord in the new progression
@@ -226,8 +240,18 @@ let majToMin = [
   { "startKeyIdx": 2, "progrArr": progr0, "nuProgrNoteIdx": 0 }];
 
 
-/* PERFORMANCE MONITORING (for debug purposes) */
+/* PERFORMANCE MONITORING (for debugging) */
 let monitoring = false;
+
+
+function openProgWindow() {
+  progrWin = window.open("progressions.html", "_blank", 'toolbar=0,location=0,menubar=0');
+
+  progrWin.onload = function () {
+    updateProgressionList();
+  };
+
+}
 
 function preload() {
   soundFormats('wav');
@@ -239,6 +263,9 @@ function preload() {
 }
 
 function setup() {
+
+  cnv = createCanvas(100, 20);
+  cnv.parent('sketch-holder');
 
   createKeyboard();
 
@@ -358,25 +385,47 @@ function setup() {
       progr5.push(i);
     }
   }
-
 }
 
-function updateProgressionViz() {
+function updateProgressionList() {
+  lastActiveProgrEl = null;
+  activeProgrEl = null;
   lastActiveProgrIdx = -1;
-  let el = document.getElementById("progression");
+  let el = progrWin.document.getElementById("progList");
   while (el.firstChild) el.removeChild(el.firstChild)
-  for (let noteIdx of activeProgr) {
-    el.insertAdjacentHTML("beforeend", '<td class="text-center">' + toRomanIndex(noteIdx) + "</td>");
+  for (let p of progr) {
+    let table = '<table class="table table-sm table-borderless">' +
+      '<tr class="table-success">';
+    for (let noteIdx of p.progr) {
+      table += '<td class="text-center">' + toRomanIndex(noteIdx) + "</td>";
+    }
+    table += '</tr>' +
+      '</table>';
+    el.insertAdjacentHTML("beforeend", '<tr><td>' + table + "</td></tr>");
   }
 }
 
+function updateProgressionViz() {
+  lastActiveProgrEl = activeProgrEl;
+  let el = progrWin.document.getElementById("progList");
+  activeProgrEl = el.getElementsByTagName("table")[progrIdx];
+  console.log(activeProgrEl);
+  if (lastActiveProgrEl === null)
+    lastActiveProgrEl = activeProgrEl;
+}
+
 function showActiveProgrIdx(idx) {
-  let el = document.getElementById("progression");
-  //console.log(el.children[idx])
-  if (lastActiveProgrIdx >= 0)
-    el.children[lastActiveProgrIdx].classList.remove("activeProgr");
-  el.children[idx].classList.add("activeProgr");
-  lastActiveProgrIdx = idx;
+  if (activeProgrEl !== null) {
+    let el = activeProgrEl.getElementsByTagName("tr")[0];
+    //console.log(el.children[idx])
+    if (lastActiveProgrIdx >= 0)
+      if (lastActiveProgrEl.getElementsByClassName("activeProgr").length > 0)
+        lastActiveProgrEl.getElementsByTagName("tr")[0].children[lastActiveProgrIdx].classList.remove("activeProgr");
+      else
+        el.children[lastActiveProgrIdx].classList.remove("activeProgr");
+    el.children[idx].classList.add("activeProgr");
+    lastActiveProgrIdx = idx;
+  }  
 }
 
 function play() {
@@ -398,14 +447,17 @@ function play() {
 
   activeProgr = progr[progrIdx]['progr'];
 
-  updateProgressionViz();
-
   modMode = parseInt(document.getElementById("modMode").value, 10);
   // console.log(modMode);
 
-  let minOn = (modMode == MOD_MODE_ONLY_MIN);
+  let minOn = (modMode == MOD_MODE_ONLY_MIN || modMode == MOD_MODE_MIN_NO_MOD);
 
   activeKey = minOn ? minKey : majKey;
+
+  if (typeof progrWin != "undefined") {
+    updateProgressionList();
+    updateProgressionViz();
+  }
 
   if (typeof this.id !== "undefined") tonic = parseInt(this.id.substring(1), 10);
 
@@ -443,9 +495,7 @@ function play() {
   let durL = [];
 
   while (beatN < tsT && dur < 1) {
-
     durL.push(Math.round(beatMs));
-
     dur *= 2;
     beatMs *= 2;
     beatN *= 2;
@@ -529,6 +579,10 @@ function play() {
       tds[k++].setAttribute("style", "background-color:rgb(" + r + "," + g + "," + b + ")");
     }
   }
+
+  resizeCanvas(seq.getBoundingClientRect().width, 20);
+
+  sixteenthWidth = Math.round(tds[0].getBoundingClientRect().width);
 
   drngInv = new DistributedRandomNumberGenerator();
   // the probability is directly proportional to the length of the note 
@@ -733,15 +787,20 @@ function timer8() {
   }
 
   /** SEQUENCER */
-  tds[seqIdx++].classList.remove("seq-active");
 
-  if (seqIdx == tds.length)
+  seqIdx++;
+
+  if (seqIdx === tds.length) 
     seqIdx = 0;
 
-  tds[seqIdx].classList.add("seq-active");
-
-  setTimeout(timer8, sixteenthMs //- timerDelayCompensationMs 
+  setTimeout(timer8, sixteenthMs 
+    - timerDelayCompensationMs2 
     - (Date.now() - t0));
+}
+
+function draw() {
+  background(0, 100, 200);
+  rect(seqIdx*sixteenthWidth, 0, sixteenthWidth, 20);
 }
 
 function timer() {
@@ -853,7 +912,8 @@ function timer() {
         progrNoteIdx = 0; // reset to I chord
         activeProgr = progr[progrIdx]['progr'];
 
-        updateProgressionViz();
+        if (typeof progrWin != "undefined")
+          updateProgressionViz();
 
         // console.log("new progr " + progrIdx);
       }
@@ -876,12 +936,17 @@ function timer() {
       else
         isMajToMin = false;
 
-      // console.log("modulation to relative minor/major key ... isMajToMin: " + isMajToMin);
+      console.log("modulation to relative minor/major key ... isMajToMin: " + isMajToMin);
 
       activeKey = isMajToMin ? minKey : majKey;
+
+      if (typeof progrWin !== "undefined")
+        updateProgressionList();
+
       circle = isMajToMin ? majCircle : minCircle;
       nuCircle = isMajToMin ? minCircle : majCircle;
       interval = isMajToMin ? minInterval : majInterval;
+
       if (isMajToMin)
         if (activeProgr[progrNoteIdx] == majToMin[0]["startKeyIdx"]) {
           modulation = majToMin[0];
@@ -941,11 +1006,11 @@ function timer() {
 
         progrNoteIdx = modulation["nuProgrNoteIdx"]; // set start point of the progression
         activeProgr = progr[progrIdx]['progr'];
-
-        updateProgressionViz();
-
         // console.log("new progr " + progrIdx);
       }
+
+      if (typeof progrWin != "undefined")
+          updateProgressionViz();
 
     } else if (restart && randChgProg == CHG_PROG) {
       // no pivot chord found, so choose another progression (no modulation)
@@ -959,7 +1024,8 @@ function timer() {
       progrIdx = parseInt(random() * progr.length, 10);
       activeProgr = progr[progrIdx]['progr'];
 
-      updateProgressionViz();
+      if (typeof progrWin != "undefined")
+        updateProgressionViz();
       // console.log("new progr " + progrIdx);
     }
 
@@ -973,7 +1039,8 @@ function timer() {
 
       // console.log("progrNoteIdx " + progrNoteIdx);
 
-      showActiveProgrIdx(progrNoteIdx);
+      if (typeof progrWin != "undefined")
+        showActiveProgrIdx(progrNoteIdx);
 
       noteIdx = activeProgr[progrNoteIdx];
       activeShift = shift[activeKey[noteIdx]];
@@ -1103,7 +1170,7 @@ function timer() {
 
   setTimeout(timer,
     barMs
-    //- timerDelayCompensationMs 
+    - timerDelayCompensationMs2 
     - (Date.now() - t0)
   );
 
@@ -1148,7 +1215,9 @@ function timer3() {
 
   //if (noteIdx2 < durL2.length && durL2[noteIdx2] > 0.) {
 
-  decayTime = (parseInt(durL2[noteIdx2] - attackTime * 1000, 10) - timerDelayCompensationMs) / 1000;
+  decayTime = (parseInt(durL2[noteIdx2] - attackTime * 1000, 10) 
+  - timerDelayCompensationMs
+  ) / 1000;
 
   //console.log(decayTime + " " + freq + " " + freq2 + " " + freq3 + " " + freq4);
 
@@ -1199,8 +1268,10 @@ function timer3() {
 
   noteIdx2++;
 
-  //console.log(durL2[noteIdx2-1] - timerDelayCompensationMs - (Date.now() - t0));
-  setTimeout(timer3, durL2[noteIdx2 - 1] - timerDelayCompensationMs - (Date.now() - t0));
+  //console.log(durL2[noteIdx2-1] - timerDelayCompensationMs2 - (Date.now() - t0));
+  setTimeout(timer3, durL2[noteIdx2 - 1] 
+    - timerDelayCompensationMs2 
+    - (Date.now() - t0));
 
 }
 
@@ -1232,7 +1303,9 @@ function timer2() {
   if (beatOn)
     beatSound.play();
 
-  setTimeout(timer2, beatMs);
+  setTimeout(timer2, beatMs 
+    - timerDelayCompensationMs2
+    );
 }
 
 function timer7() {
@@ -1257,7 +1330,9 @@ function timer7() {
   if (hh2Idx == patSize)
     hh2Idx = 0;
 
-  setTimeout(timer7, sixteenthMs - (Date.now() - t0));
+  setTimeout(timer7, sixteenthMs 
+    - timerDelayCompensationMs2 
+    - (Date.now() - t0));
 }
 
 function timer6() {
@@ -1280,7 +1355,9 @@ function timer6() {
   if (hhIdx == patSize)
     hhIdx = 0;
 
-  setTimeout(timer6, sixteenthMs - (Date.now() - t0));
+  setTimeout(timer6, sixteenthMs 
+    - timerDelayCompensationMs2
+    - (Date.now() - t0));
 }
 
 function timer5() {
@@ -1303,7 +1380,9 @@ function timer5() {
   if (snrIdx == patSize)
     snrIdx = 0;
 
-  setTimeout(timer5, sixteenthMs - (Date.now() - t0));
+  setTimeout(timer5, sixteenthMs 
+    - timerDelayCompensationMs2
+    - (Date.now() - t0));
 }
 
 function timer4() {
@@ -1346,7 +1425,9 @@ function timer4() {
   if (bdIdx == patSize)
     bdIdx = 0;
 
-  setTimeout(timer4, sixteenthMs - (Date.now() - t0));
+  setTimeout(timer4, sixteenthMs 
+    - timerDelayCompensationMs2
+    - (Date.now() - t0));
 }
 
 

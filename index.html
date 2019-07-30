@@ -106,11 +106,11 @@
     .custom-switch .custom-control-label::after {
       top: calc(.75rem + 2px);
     }
-
+/*
     #sequencer td {
       border-width: 12px !important;
     }
-
+*/
     .seq-active {
       border-color: red !important;
     }
@@ -129,6 +129,16 @@
     .activeProgr {
       background-color: #ffef5a !important;
     }
+
+    #cursor {
+      width: 12px;
+      background-color: white;
+      border: none;
+      margin: 0;
+      padding: 0;
+      position: absolute;
+      z-index: 9999;
+    }
   </style>
 
   <script src="p5/p5.min.js"></script>
@@ -137,6 +147,8 @@
 </head>
 
 <body>
+
+  <div id="cursor" style="display:none"></div>
 
   <div class="container-full">
     <div class="row">
@@ -154,18 +166,18 @@
 
         </div>
       </div>
-      <!--div class="col-4 col-lg-2">&nbsp;</div-->
     </div>
 
     <div class="row">
       <div class="col-1">&nbsp;</div>
       <div class="col">
-        <table class="table table-dark">
+        <table class="table table-borderless">
           <tbody>
             <tr id="sequencer">
-            </tr>
+            </tr>            
           </tbody>
         </table>
+        <div id="sketch-holder"></div>
       </div>
       <div class="col-1">&nbsp;</div>
     </div>
@@ -233,10 +245,12 @@
 
             <div class="col-9 col-md-3 col-lg-2">
               <select class="form-control" id="modMode">
-                <option value="0">Only minor keys</option>
-                <option value="1">Only major keys</option>
-                <option value="2">Major/minor keys</option>
-                <option value="3">Major/minor keys (harder)</option>
+                <option value="0">Only minor keys (no modulation)</option>
+                <option value="1">Only major keys (no modulation)</option>
+                <option selected value="2">Only minor keys</option>
+                <option value="3">Only major keys</option>
+                <option value="4">Major/minor keys</option>
+                <option value="5">Major/minor keys (harder)</option>
               </select>
             </div>
 
@@ -274,13 +288,22 @@
       </div>
     </div>
     <div class="row">
-        <div class="col-1">&nbsp;</div>
-        <div class="col">
-          <table class="table table-sm table-borderless">
+
+       
+        <div class="col text-center">
+          <button type="button" class="btn btn-primary" onclick="openProgWindow()">Show progressions window</a>
+          <!--table class="table table-sm table-borderless">
               <tr class="table-success" id="progression"></tr>
-          </table>          
+          </table-->          
         </div>
-        <div class="col-1">&nbsp;</div>
+    </div>
+    <div class="row">
+      <div class="col-3">&nbsp;</div>
+      <div class="col">
+        <table id="progList" class="table table-sm table-borderless">
+        </table>          
+      </div>
+      <div class="col-3">&nbsp;</div>
     </div>
     <div class="row">
       <div class="col">
