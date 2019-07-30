@@ -409,7 +409,7 @@ function updateProgressionViz() {
   lastActiveProgrEl = activeProgrEl;
   let el = progrWin.document.getElementById("progList");
   activeProgrEl = el.getElementsByTagName("table")[progrIdx];
-  console.log(activeProgrEl);
+  //console.log(activeProgrEl);
   if (lastActiveProgrEl === null)
     lastActiveProgrEl = activeProgrEl;
 }
@@ -936,7 +936,7 @@ function timer() {
       else
         isMajToMin = false;
 
-      console.log("modulation to relative minor/major key ... isMajToMin: " + isMajToMin);
+      //console.log("modulation to relative minor/major key ... isMajToMin: " + isMajToMin);
 
       activeKey = isMajToMin ? minKey : majKey;
 
