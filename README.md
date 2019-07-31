@@ -20,5 +20,3 @@
 - bootstrap
 - https://codepen.io/zastrow/pen/oDBki for the nice piano keyboard.
 - https://soundpacks.com/free-sound-packs/jazz-drum-kit/ for the drum kit sounds.
-# Known issues
-- Sometimes the cursor of the sequencer is out of sync with the music (workaround: stop/start).

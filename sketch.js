@@ -264,8 +264,9 @@ function preload() {
 
 function setup() {
 
+  document.getElementById("cursor-holder").style.display = "none";
   cnv = createCanvas(100, 20);
-  cnv.parent('sketch-holder');
+  cnv.parent('cursor-holder');
 
   createKeyboard();
 
@@ -425,7 +426,7 @@ function showActiveProgrIdx(idx) {
         el.children[lastActiveProgrIdx].classList.remove("activeProgr");
     el.children[idx].classList.add("activeProgr");
     lastActiveProgrIdx = idx;
-  }  
+  }
 }
 
 function play() {
@@ -581,6 +582,8 @@ function play() {
   }
 
   resizeCanvas(seq.getBoundingClientRect().width, 20);
+
+  document.getElementById("cursor-holder").style.display = "block";
 
   sixteenthWidth = Math.round(tds[0].getBoundingClientRect().width);
 
@@ -748,9 +751,6 @@ function play() {
 
   timer();
 
-  // sequencer
-  timer8();
-
   // beat (metronome)
   timer2();
 
@@ -763,44 +763,9 @@ function play() {
 
 }
 
-function timer8() {
-  let t0 = Date.now();
-
-  if (monitoring)
-    perf8.push(t0)
-
-  if (cancel8) {
-    cancel8 = false;
-    if (monitoring) {
-      if (perf8.length % 2 != 0)
-        perf8.pop();
-
-      let sum = 0
-      for (let i = perf8.length - 1; i > 0; i--) {
-        let delta = perf8[i] - perf8[i - 1];
-        sum += delta;
-      }
-      //console.log(perf8);
-      console.log("perf8 " + (sum / (perf8.length - 1)));
-    }
-    return;
-  }
-
-  /** SEQUENCER */
-
-  seqIdx++;
-
-  if (seqIdx === tds.length) 
-    seqIdx = 0;
-
-  setTimeout(timer8, sixteenthMs 
-    - timerDelayCompensationMs2 
-    - (Date.now() - t0));
-}
-
 function draw() {
   background(0, 100, 200);
-  rect(seqIdx*sixteenthWidth, 0, sixteenthWidth, 20);
+  rect(seqIdx * sixteenthWidth, 0, sixteenthWidth, 20);
 }
 
 function timer() {
@@ -909,7 +874,7 @@ function timer() {
         else
           progrIdx = progr0[parseInt(random() * progr0.length, 10)];
 
-        progrNoteIdx = 0; // reset to I chord
+        progrNoteIdx = 0; // progr0 -> reset to I chord
         activeProgr = progr[progrIdx]['progr'];
 
         if (typeof progrWin != "undefined")
@@ -1010,7 +975,7 @@ function timer() {
       }
 
       if (typeof progrWin != "undefined")
-          updateProgressionViz();
+        updateProgressionViz();
 
     } else if (restart && randChgProg == CHG_PROG) {
       // no pivot chord found, so choose another progression (no modulation)
@@ -1166,11 +1131,11 @@ function timer() {
 
   }
 
-  //console.log(barMs - (Date.now() - t0));
+  // console.log((Date.now() - t0));
 
   setTimeout(timer,
     barMs
-    - timerDelayCompensationMs2 
+    - timerDelayCompensationMs2
     - (Date.now() - t0)
   );
 
@@ -1213,10 +1178,16 @@ function timer3() {
 
   //console.log(noteIdx2);
 
-  //if (noteIdx2 < durL2.length && durL2[noteIdx2] > 0.) {
+  let sumD = 0;
+  for (let i = 0; i < noteIdx2; i++) {
+    sumD += durL2[i];
+  }
 
-  decayTime = (parseInt(durL2[noteIdx2] - attackTime * 1000, 10) 
-  - timerDelayCompensationMs
+  // sequencer
+  seqIdx = sumD / sixteenthMs; // how many 1/16 have passed
+
+  decayTime = (parseInt(durL2[noteIdx2] - attackTime * 1000, 10)
+    - timerDelayCompensationMs
   ) / 1000;
 
   //console.log(decayTime + " " + freq + " " + freq2 + " " + freq3 + " " + freq4);
@@ -1263,14 +1234,12 @@ function timer3() {
 
   }
 
-
-  //}
-
   noteIdx2++;
 
-  //console.log(durL2[noteIdx2-1] - timerDelayCompensationMs2 - (Date.now() - t0));
-  setTimeout(timer3, durL2[noteIdx2 - 1] 
-    - timerDelayCompensationMs2 
+  // console.log((Date.now() - t0));
+  setTimeout(timer3,
+    durL2[noteIdx2 - 1]
+    - timerDelayCompensationMs2
     - (Date.now() - t0));
 
 }
@@ -1303,9 +1272,10 @@ function timer2() {
   if (beatOn)
     beatSound.play();
 
-  setTimeout(timer2, beatMs 
+  setTimeout(timer2,
+    beatMs
     - timerDelayCompensationMs2
-    );
+  );
 }
 
 function timer7() {
@@ -1330,8 +1300,9 @@ function timer7() {
   if (hh2Idx == patSize)
     hh2Idx = 0;
 
-  setTimeout(timer7, sixteenthMs 
-    - timerDelayCompensationMs2 
+  setTimeout(timer7,
+    sixteenthMs
+    - timerDelayCompensationMs2
     - (Date.now() - t0));
 }
 
@@ -1355,7 +1326,8 @@ function timer6() {
   if (hhIdx == patSize)
     hhIdx = 0;
 
-  setTimeout(timer6, sixteenthMs 
+  setTimeout(timer6,
+    sixteenthMs
     - timerDelayCompensationMs2
     - (Date.now() - t0));
 }
@@ -1380,7 +1352,8 @@ function timer5() {
   if (snrIdx == patSize)
     snrIdx = 0;
 
-  setTimeout(timer5, sixteenthMs 
+  setTimeout(timer5,
+    sixteenthMs
     - timerDelayCompensationMs2
     - (Date.now() - t0));
 }
@@ -1425,7 +1398,8 @@ function timer4() {
   if (bdIdx == patSize)
     bdIdx = 0;
 
-  setTimeout(timer4, sixteenthMs 
+  setTimeout(timer4,
+    sixteenthMs
     - timerDelayCompensationMs2
     - (Date.now() - t0));
 }
