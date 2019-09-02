@@ -902,7 +902,7 @@ function timer() {
 
         progrNoteIdx = 0; // progr0 -> reset to I chord
 
-        if (progr[progrIdx].length == 0)
+        if (typeof progr[progrIdx] === 'undefined')
           progrIdx = enabledProgr[parseInt(random() * enabledProgr.length, 10)];
 
         activeProgr = progr[progrIdx]['progr'];
