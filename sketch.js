@@ -105,27 +105,27 @@ let activeKey, activeProgr, activeShift;
 //    - varMin is used only in minor keys
 let progr = [
   // JAZZ
-  { progr: [1, 4, 0, 0], varMaj: [1, 3, 0, 0], varMin: [5, 3, 1, 1] },
-  { progr: [0, 0, 1, 1, 2, 5], varMaj: [0, 4, 1, 4, 1, 3] },
-  { progr: [0, 5, 1, 4, 2, 5, 1, 4], varMaj: [0, 1, 1, 3, 1, 3, 1, 3] },
-  { progr: [0, 1, 4, 3], varMaj: [0, 1, 3, 0] },
-  { progr: [0, 0, 3, 3, 2, 5, 1, 4, 0, 0], varMaj: [0, 3, 0, 1, 1, 3, 1, 3, 0, 0] },
-  { progr: [0, 0, 1, 4], varMaj: [0, 0, 1, 3] },
-  { progr: [0, 0, 1, 1, 1, 4, 0, 0], varMaj: [0, 0, 3, 3, 1, 3, 0, 0] },
-  { progr: [2, 5, 1, 4], varMaj: [3, 3, 3, 3] },
+  { progr: [1, 4, 0, 0], varMaj: [1, 3, 0, 0], varMin: [5, 3, 1, 1], enabled: true },
+  { progr: [0, 0, 1, 1, 2, 5], varMaj: [0, 4, 1, 4, 1, 3], enabled: true },
+  { progr: [0, 5, 1, 4, 2, 5, 1, 4], varMaj: [0, 1, 1, 3, 1, 3, 1, 3], enabled: true },
+  { progr: [0, 1, 4, 3], varMaj: [0, 1, 3, 0], enabled: true },
+  { progr: [0, 0, 3, 3, 2, 5, 1, 4, 0, 0], varMaj: [0, 3, 0, 1, 1, 3, 1, 3, 0, 0], enabled: true },
+  { progr: [0, 0, 1, 4], varMaj: [0, 0, 1, 3], enabled: true },
+  { progr: [0, 0, 1, 1, 1, 4, 0, 0], varMaj: [0, 0, 3, 3, 1, 3, 0, 0], enabled: true },
+  { progr: [2, 5, 1, 4], varMaj: [3, 3, 3, 3], enabled: true },
 
   // OTHER (no varMaj/varMin means to use shifts of the active key)
-  { progr: [0, 3, 5] },
-  { progr: [0, 4, 5, 3] },
-  { progr: [0, 3, 5] },
-  { progr: [0, 3, 0, 4, 0] },
-  { progr: [2, 5, 1, 4] },
-  { progr: [0, 3, 6, 2, 5, 1, 4, 0] },
-  { progr: [0, 3, 4, 0] }
+  { progr: [0, 3, 5], enabled: true },
+  { progr: [0, 4, 5, 3], enabled: true },
+  { progr: [0, 3, 0, 4, 0], enabled: true },
+  { progr: [2, 5, 1, 4], enabled: true },
+  { progr: [0, 3, 6, 2, 5, 1, 4, 0], enabled: true },
+  { progr: [0, 3, 4, 0], enabled: true }
 ];
 
 let progrIdx = 0;
 
+let enabledProgr = [];
 let progr0 = []; // Indexes of progr that start with 0 (I/i chord)
 let progr3 = []; // Indexes of progr that have 3 (IV/iv chord) as second chord
 let progr5 = []; // Indexes of progr that have 5 (vi/VI chord) as second chord
@@ -167,7 +167,7 @@ let midiNote;  // current playing note
 
 let durL2 = []; // duration of notes generated in a bar
 
-// this random number gen creates number according to the probabilities given,
+// this random number generator creates numbers according to the probabilities given,
 // it is used to choose a note index that corresponds to a chord inversion
 let drngInv;
 const NO_INV = 1, INV = 0;
@@ -210,7 +210,7 @@ let modProbs = [{
 }
 ];
 
-// this random number gen creates number according to the probabilities associated to 3 events: 
+// this random number generator creates numbers according to the probabilities associated to 3 events: 
 // - no progression change, 
 // - change progression 
 let drngChgProg;
@@ -220,15 +220,15 @@ let probNoChgProg = 1, probChgProg = 0;
 let cancel = false, cancel2 = false, cancel3 = false, cancel4 = false, cancel5 = false, cancel6 = false, cancel7 = false, cancel8 = false; // vars to stop timers
 let isPlaying = false;
 /* 
-!!!!ATTENTION!!!! 
-usually, in this application consecutive timer calls are delayed more than 4ms so there should be no problem here
+REGARDING TIMERS IN JS:
+*usually*, in this application consecutive timer calls are delayed more than 4ms, so there should be no problem here
 ref. https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout#Reasons_for_delays_longer_than_specified 
 */
 let timerDelayCompensationMs = 20, timerDelayCompensationMs2 = 2;
 
 // minToMaj/majToMin => arrays to associate: 
 // - scale index of pivot chord in the starting key
-// - array where to get a new progression
+// - array from where to get a new progression
 // - index of next chord in the new progression
 // - progr5 is where are stored progression with chord nr. 5 (which is vi/VI) as the second chord (index 1) of the progression
 // - progr3 is where are stored progression with chord nr. 3 (which is IV/iv) as the second chord (index 1) of the progression
@@ -374,8 +374,15 @@ function setup() {
   reverb.process(filter, 4, 18);
 
   // setup chord progr
+  setupChordProgr();
+}
 
+function setupChordProgr() {
+  enabledProgr = [], progr0 = [], progr3 = [], progr5 = [];
   for (let i = 0; i < progr.length; i++) {
+    if (!progr[i].enabled)
+      continue;
+    enabledProgr.push(i);
     if (progr[i]["progr"][0] == 0) {
       progr0.push(i);
     }
@@ -388,21 +395,39 @@ function setup() {
   }
 }
 
+function switchProgr(index) {
+  let wasEnabled = progr[index].enabled;
+  progr[index].enabled = !progr[index].enabled;
+  // setup chord progr
+  setupChordProgr();
+  let el = progrWin.document.getElementById("progList");
+  let nuClass = wasEnabled ? "btn-danger" : "btn-success";
+  let b = el.children[index].getElementsByTagName("button")[0];
+  if (wasEnabled)
+    b.classList.remove("btn-success");
+  else
+    b.classList.remove("btn-danger");
+  b.classList.add(nuClass);
+}
+
 function updateProgressionList() {
   lastActiveProgrEl = null;
   activeProgrEl = null;
   lastActiveProgrIdx = -1;
   let el = progrWin.document.getElementById("progList");
-  while (el.firstChild) el.removeChild(el.firstChild)
+  while (el.firstChild) el.removeChild(el.firstChild);
+  let progrCnt = 0;
   for (let p of progr) {
     let table = '<table class="table table-sm table-borderless">' +
       '<tr class="table-success">';
     for (let noteIdx of p.progr) {
       table += '<td class="text-center">' + toRomanIndex(noteIdx) + "</td>";
     }
+    table += '<td class="text-center"><button class="btn btn-' + (p.enabled ? "success" : "danger") + '" onclick="opener.switchProgr(' + progrCnt + ')">On/Off</button></td>';
     table += '</tr>' +
       '</table>';
     el.insertAdjacentHTML("beforeend", '<tr><td>' + table + "</td></tr>");
+    progrCnt++;
   }
 }
 
@@ -442,7 +467,7 @@ function play() {
 
   beatMs = minuteMs / bpm;
 
-  progrIdx = parseInt(random() * progr.length, 10);
+  progrIdx = enabledProgr[parseInt(random() * enabledProgr.length, 10)];
 
   // console.log(progrIdx);
 
@@ -870,11 +895,16 @@ function timer() {
         drngChgProg.addNumber(NO_CHG_PROG, probNoChgProg);
 
         if (restart)
-          progrIdx = parseInt(random() * progr.length, 10);
+          progrIdx = enabledProgr[parseInt(random() * enabledProgr.length, 10)];
+
         else
           progrIdx = progr0[parseInt(random() * progr0.length, 10)];
 
         progrNoteIdx = 0; // progr0 -> reset to I chord
+
+        if (progr[progrIdx].length == 0)
+          progrIdx = enabledProgr[parseInt(random() * enabledProgr.length, 10)];
+
         activeProgr = progr[progrIdx]['progr'];
 
         if (typeof progrWin != "undefined")
@@ -964,10 +994,12 @@ function timer() {
         drngChgProg.addNumber(CHG_PROG, probChgProg);
         drngChgProg.addNumber(NO_CHG_PROG, probNoChgProg);
 
-        if (restart)
-          progrIdx = parseInt(random() * progr.length, 10);
+        let progrArr = modulation["progrArr"];
+
+        if (progrArr.length == 0 || restart)
+          progrIdx = enabledProgr[parseInt(random() * enabledProgr.length, 10)];
         else
-          progrIdx = modulation["progrArr"][parseInt(random() * modulation["progrArr"].length, 10)];
+          progrIdx = progrArr[parseInt(random() * progrArr.length, 10)];
 
         progrNoteIdx = modulation["nuProgrNoteIdx"]; // set start point of the progression
         activeProgr = progr[progrIdx]['progr'];
@@ -986,7 +1018,8 @@ function timer() {
       drngChgProg.addNumber(CHG_PROG, probChgProg);
       drngChgProg.addNumber(NO_CHG_PROG, probNoChgProg);
 
-      progrIdx = parseInt(random() * progr.length, 10);
+      progrIdx = enabledProgr[parseInt(random() * enabledProgr.length, 10)];
+
       activeProgr = progr[progrIdx]['progr'];
 
       if (typeof progrWin != "undefined")
@@ -1569,7 +1602,6 @@ function createKeyboard() {
         key.addEventListener("click", play, false);
         key.classList.add("pressable");
       }
-
       midiKey++;
     }
     kb.insertAdjacentElement('beforeend', ul);
